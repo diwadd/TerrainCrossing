@@ -40,8 +40,8 @@ def interection_point(l1, l2):
 # l1 = Location(1.25, 1.25)
 # l2 = Location(2.25, 1.75)
 
-l1 = Location(3.0, 1.5)
-l2 = Location(3.0, 2.5)
+l1 = Location(0, 0)
+l2 = Location(50, 50)
 
 de = distance_euclidean(l1, l2)
 dm = distance_manhatan(l1, l2)
