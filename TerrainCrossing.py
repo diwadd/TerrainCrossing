@@ -12,11 +12,13 @@ class Vertex:
 		self.x = x
 		self.y = y
 		self.tt = tt
-		
+	
+	
 	def __hash__(self):
 		s = str(self.i) + str(self.j) + str(self.x) + str(self.y) + str(self.tt)
 		return hash(s)
-		
+	
+	
 	def __eq__(self, other):
 		sxr = round(self.x, ROUNDING_PRECISION)
 		syr = round(self.y, ROUNDING_PRECISION)
@@ -29,6 +31,10 @@ class Vertex:
 	def __ne__(self, other):
 		return not(self == other)
 	
+	
+	def __str__(self):
+		return str(self.i) + str(self.j)
+		
 	
 	def euclidean_distance(self, v):
 		x2 = math.pow(self.x - v.x, 2)
@@ -78,7 +84,13 @@ class Vertex:
 class Graph:
 	def __init__(self, map_matrix):
 		N = len(map_matrix)
+		
+		# vertex_connection[vertex] = number
+		# vertex_array[number] = vertex
+		# adjacency_list[number] = list of neighbouring vertexes
+		
 		self.vertex_connection = {}
+		self.vertex_array = [Vertex(0,0,0,0,0) for i in range(N*N)]
 		self.adjacency_list = [[] for i in range(N*N)]
 
 		vertex_id = 0
@@ -90,6 +102,29 @@ class Graph:
 				
 				v = Vertex(i, j, i + INDEX_SHIFT, j + INDEX_SHIFT, tt)
 				
+				self.vertex_connection[v] = vertex_id
+				self.vertex_array[vertex_id] = v
+				
+				for k in range(len(neighbours)):
+					ni = neighbours[k][0]
+					nj = neighbours[k][1]
+					nx = ni + INDEX_SHIFT
+					ny = nj + INDEX_SHIFT
+					nt = map_matrix[ni][nj]
+					
+					nv = Vertex(ni, nj, nx, ny, nt)
+					(self.adjacency_list[vertex_id]).append([nv, nv.distance(v)])
+				
+				vertex_id = vertex_id + 1
+
+	def print_graph(self):
+	
+		for i in range(len(self.vertex_array)):
+			s = "Vertex: " + str(self.vertex_array[i]) + " -> "
+			for j in range(len(self.adjacency_list[i])):
+				s = s + str(self.adjacency_list[i][j][0]) + " -> "
+			s = s + "END"
+			print(s)
 			
 
 def get_neighbours(N,i,j):
@@ -144,23 +179,10 @@ def print_matrix(m):
 map_matrix = [[9,9,9,9],[9,0,9,9],[9,0,0,9],[9,9,0,9]]
 N = len(map_matrix)
 
-M = 5
-print_matrix_ij(M)
 
-print_neighbours(M, 0, 0)
-print_neighbours(M, 1, 1)
-print_neighbours(M, 2, 3)
-print_neighbours(M, 0, 0)
-print_neighbours(M, 4, 4)
+print_matrix_ij(4)
 
+g = Graph(map_matrix)
+g.print_graph()
 
-v1 = Vertex(0, 0, 0.5, 0.5, 9)
-v2 = Vertex(1, 1, 1.5, 1.5, 9)
-
-v1 = Vertex(1, 1, 1.5, 1.5, 1)
-v2 = Vertex(0, 0, 0.5, 0.5, 9)
-
-print(v1.euclidean_distance(v2))
-print(v1.intersection_point(v2))
-print("Distance: " + str(v1.distance(v2)))
 
