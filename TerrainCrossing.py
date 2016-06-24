@@ -80,6 +80,36 @@ class Vertex:
 		return score + self.euclidean_distance(intersection_vertex)*tt_s + intersection_vertex.euclidean_distance(v)*tt_v
 
 
+	def get_neighbours(self, N):
+		# Return the nearest neighbours of a vertex.
+		neighbours = []
+		
+		i_up = self.i-1
+		j_up = self.j
+		if (i_up >= 0):
+			neighbours.append([i_up, j_up])
+		
+		
+		i_down = self.i+1
+		j_down = self.j
+		if (i_down <= N-1):
+			neighbours.append([i_down, j_down])
+		
+		
+		i_left = self.i
+		j_left = self.j-1
+		if (j_left >= 0):
+			neighbours.append([i_left, j_left])
+		
+		
+		i_right = self.i
+		j_right = self.j+1
+		if (j_right <= N-1):
+			neighbours.append([i_right, j_right])
+		
+		return neighbours
+
+
 
 class Graph:
 	def __init__(self, map_matrix):
@@ -98,9 +128,9 @@ class Graph:
 			for j in range(len(map_matrix[i])):
 				tt = map_matrix[i][j]
 				
-				neighbours = get_neighbours(N,i,j)
-				
 				v = Vertex(i, j, i + INDEX_SHIFT, j + INDEX_SHIFT, tt)
+				
+				neighbours = v.get_neighbours(N)
 				
 				self.vertex_connection[v] = vertex_id
 				self.vertex_array[vertex_id] = v
@@ -125,35 +155,11 @@ class Graph:
 				s = s + "(" + str(self.adjacency_list[i][j][0]) + "," + str(round(self.adjacency_list[i][j][1],2)) + ") -> "
 			s = s + "END"
 			print(s)
-			
+	
+	
+	
 
-def get_neighbours(N,i,j):
-	neighbours = []
-	
-	i_up = i-1
-	j_up = j
-	if (i_up >= 0):
-		neighbours.append([i_up, j_up])
-	
-	
-	i_down = i+1
-	j_down = j
-	if (i_down <= N-1):
-		neighbours.append([i_down, j_down])
-	
-	
-	i_left = i
-	j_left = j-1
-	if (j_left >= 0):
-		neighbours.append([i_left, j_left])
-	
-	
-	i_right = i
-	j_right = j+1
-	if (j_right <= N-1):
-		neighbours.append([i_right, j_right])
-	
-	return neighbours
+
 	
 
 def print_neighbours(N,i,j):
@@ -180,7 +186,7 @@ map_matrix = [[9,9,9,9,1],[9,0,9,9,1],[9,0,0,9,1],[9,9,0,9,1],[0,1,2,3,4]]
 N = len(map_matrix)
 
 print_matrix(map_matrix)
-print_matrix_ij(4)
+print_matrix_ij(5)
 
 g = Graph(map_matrix)
 g.print_graph()
