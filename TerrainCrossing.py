@@ -1,6 +1,7 @@
 import math
 
 ROUNDING_PRECISION = 6
+INDEX_SHIFT = 0.5
 
 class Vertex:
 	def __init__(self, i, j, x, y, tt):
@@ -29,47 +30,66 @@ class Vertex:
 		return not(self == other)
 	
 	
-	def euclidean_distance(v1, v2):
-		x2 = math.pow(v1.x - v2.x, 2)
-		y2 = math.pow(v1.y - v2.y, 2)
+	def euclidean_distance(self, v):
+		x2 = math.pow(self.x - v.x, 2)
+		y2 = math.pow(self.y - v.y, 2)
 
 		return math.sqrt( x2 + y2)
 
 
-	def manhatan_distance(v1, v2):
-		x_abs = abs(v1.i - v2.i)
-		y_abs = abs(v1.j - v2.j)
+	def manhatan_distance(self, v):
+		x_abs = abs(self.i - v.i)
+		y_abs = abs(self.j - v.j)
 		
 		return x_abs + y_abs
 
 
-	def intersection_point(v1, v2):
+	def intersection_point(self, v):
 		
 		x0 = 0;
 		y0 = 0;
-		if(v1.j == v2.j):
-			x0 = max(v1.i, v2.i)
-			y0 = v1.y + (v2.y - v1.y) * (x0 - v1.x) / (v2.x - v1.x)
+		if(self.j == v.j):
+			x0 = max(self.i, v.i)
+			y0 = self.y + (v.y - self.y) * (x0 - self.x) / (v.x - self.x)
 		else:
-			y0 = max(v1.j, v2.j)
-			x0 = v1.x + (v2.x - v1.x) * (y0 - v1.y) / (v2.y - v1.y)
+			y0 = max(self.j, v.j)
+			x0 = self.x + (v.x - self.x) * (y0 - self.y) / (v.y - self.y)
 
 		return (x0, y0)
+	
+	
+	def distance(self, v):
+		
+		if(self.manhatan_distance(v) == 0):
+			# Euclidean distance times terrain type
+			return self.euclidean_distance(v)*self.tt
 
+		tt_s = self.tt
+		tt_v = v.tt
+		score = math.pow(tt_s - tt_v ,2)
+		
+		x0, y0 = self.intersection_point(v)
+		intersection_vertex = Vertex(math.floor(x0), math.floor(y0), x0, y0, -1)
 
-
+		return score + self.euclidean_distance(intersection_vertex)*tt_s + intersection_vertex.euclidean_distance(v)*tt_v
 
 
 
 class Graph:
 	def __init__(self, map_matrix):
 		N = len(map_matrix)
-		self.vertex_connection = [[0, 0] for i in range(N*N)]
-		self.adjacency_list = []
+		self.vertex_connection = {}
+		self.adjacency_list = [[] for i in range(N*N)]
 
+		vertex_id = 0
 		for i in range(len(map_matrix)):
 			for j in range(len(map_matrix[i])):
-				get_neighbours(i,j)
+				tt = map_matrix[i][j]
+				
+				neighbours = get_neighbours(N,i,j)
+				
+				v = Vertex(i, j, i + INDEX_SHIFT, j + INDEX_SHIFT, tt)
+				
 			
 
 def get_neighbours(N,i,j):
@@ -137,8 +157,10 @@ print_neighbours(M, 4, 4)
 v1 = Vertex(0, 0, 0.5, 0.5, 9)
 v2 = Vertex(1, 1, 1.5, 1.5, 9)
 
+v1 = Vertex(1, 1, 1.5, 1.5, 1)
+v2 = Vertex(0, 0, 0.5, 0.5, 9)
 
 print(v1.euclidean_distance(v2))
 print(v1.intersection_point(v2))
-
+print("Distance: " + str(v1.distance(v2)))
 
