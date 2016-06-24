@@ -5,12 +5,24 @@
 #include <sstream>
 #include <vector>
 #include <set>
+#include <string>
 
 using namespace std;
 
 //--------------------------
 //------Location class------
 //--------------------------
+
+
+template<typename Type> void print_vector_2d(vector< vector<Type> > v){
+	for(int i = 0; i < v.size(); i++){
+			for(int j = 0; j < v[i].size(); j++){
+					cerr << v[i][j] << " ";
+			}
+			cerr << endl;
+	}
+}
+
 
 class Location {
 private:
@@ -49,19 +61,24 @@ private:
 	int m_i;
 	int m_j;
 	
+	double m_x;
+	double m_y;
+	
+	short m_location_type;
+	
 public:
-	Vertex(int i = 0, int j = 0): m_i(i), m_j(j) {}
+	Vertex(int i = 0, int j = 0, double x = 0.0, double y = 0.0, short location_type = 0): m_i(i), m_j(j), m_x(x), m_y(y), m_location_type(location_type) {}
 	
 };
 
 
-class Graph {
-private:
+//class Graph {
+//private:
 
 
-public:	
+//public:	
 	
-};
+//};
 
 
 //---------------------------------
@@ -74,19 +91,20 @@ private:
 
 	vector<Location> m_item_locations;
 	vector<Location> m_target_locations;
+	
+	vector< vector<int> > m_map_matrix;
 
 public:
  
 	TerrainCrossing();
-	vector<double> getPath(vector<string> input_map, vector<double> locations, int capacity);
 
     void set_items_and_target_locations(vector<double> &locations);
     void print_item_locations();
 	void print_target_locations();
     
-	int item_closest_to_boarder()
+	void initialize_map_matrix(vector<string> &input_map);
     
-    
+    vector<double> getPath(vector<string> input_map, vector<double> locations, int capacity);
 };
 
 
@@ -99,6 +117,8 @@ TerrainCrossing::TerrainCrossing(){
 	
 	vector<Location> m_item_locations = vector<Location>();
 	vector<Location> m_target_locations = vector<Location>();
+	
+	vector< vector<int> > m_map_matrix = vector< vector<int> >();
 	
 }
 
@@ -141,6 +161,23 @@ void TerrainCrossing::print_target_locations(){
 }
 
 
+void TerrainCrossing::initialize_map_matrix(vector<string> &input_map) {
+	
+	// Resize vector to meet the map size.
+	int N = input_map.size();
+	m_map_matrix.resize(N);
+	for(int i = 0; i < N; i++)
+		m_map_matrix[i].resize(N);
+	
+	// Fill the map matrix.
+	for(int i = 0; i < N; i++){
+		for(int j = 0; j < input_map[i].length(); j++){
+				m_map_matrix[i][j] = input_map[i][j] - '0';
+		}
+	}
+	
+}
+
 
 vector<double> TerrainCrossing::getPath(vector<string> input_map, vector<double> locations, int capacity) {
 
@@ -149,13 +186,12 @@ vector<double> TerrainCrossing::getPath(vector<string> input_map, vector<double>
 		print_item_locations();
 		print_target_locations();
 		
+		initialize_map_matrix(input_map);
+		print_vector_2d(m_map_matrix);
+		
 		cerr << "Input map size: " << input_map.size() << endl;
 		for(int i = 0; i < input_map.size(); i++)
 			cerr << input_map[i] << endl;
-		
-		
-		//for(int i = 0; i < locations.size(); i++)
-		//	cerr << locations[i] << endl;
 		
 		
 		vector<double> ret;
@@ -220,3 +256,9 @@ int main() {
         cout << ret[i] << endl;
     cout.flush();
 }
+
+
+
+
+
+

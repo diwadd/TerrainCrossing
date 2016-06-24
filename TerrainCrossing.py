@@ -122,7 +122,7 @@ class Graph:
 		for i in range(len(self.vertex_array)):
 			s = "Vertex: " + str(self.vertex_array[i]) + " -> "
 			for j in range(len(self.adjacency_list[i])):
-				s = s + str(self.adjacency_list[i][j][0]) + " -> "
+				s = s + "(" + str(self.adjacency_list[i][j][0]) + "," + str(round(self.adjacency_list[i][j][1],2)) + ") -> "
 			s = s + "END"
 			print(s)
 			
@@ -176,10 +176,10 @@ def print_matrix(m):
 		print()
 
 
-map_matrix = [[9,9,9,9],[9,0,9,9],[9,0,0,9],[9,9,0,9]]
+map_matrix = [[9,9,9,9,1],[9,0,9,9,1],[9,0,0,9,1],[9,9,0,9,1],[0,1,2,3,4]]
 N = len(map_matrix)
 
-
+print_matrix(map_matrix)
 print_matrix_ij(4)
 
 g = Graph(map_matrix)
