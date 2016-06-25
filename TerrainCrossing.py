@@ -157,12 +157,12 @@ class Graph:
 			for j in range(len(self.adjacency_list[i])):
 				s = s + "(" + str(self.adjacency_list[i][j][0]) + "," + str(round(self.adjacency_list[i][j][1],2)) + ") -> "
 			s = s + "END"
-			print(s, file=sys.stderr)
+			sys.stderr.write(s + "\n")
 
 
 	def find_shortest_path(self, v1, v2):
 
-		distances = [math.inf for i in range(self.n_vertexes)]
+		distances = [float("inf") for i in range(self.n_vertexes)]
 		previous = [-1 for i in range(self.n_vertexes)]
 		in_queue = [True for i in range(self.n_vertexes)]
 
@@ -210,14 +210,14 @@ class Graph:
 
 def print_neighbours(N, i, j):
 	neighbours = get_neighbours(N, i, j)
-	print("Neighbours for: " + str(i) + str(j) + " " + str(neighbours), file=sys.stderr)
+	sys.stderr.write("Neighbours for: " + str(i) + str(j) + " " + str(neighbours) + "\n")
 
 
 def print_matrix_ij(N):
 	for i in range(N):
 		for j in range(N):
-			print(str(i) + str(j) + " ", end="", file=sys.stderr)
-		print()
+			sys.stderr.write(str(i) + str(j) + " ")
+		sys.stderr.write("\n")
 
 
 def print_matrix_123(N):
@@ -227,32 +227,51 @@ def print_matrix_123(N):
 			s = ""
 			if (index < 10):
 				s = "0" + str(index)
-				print(str(s) + " ", end="", file=sys.stderr)
+				sys.stderr.write(str(s) + " ")
 				index = index + 1
 			else:
-				print(str(index) + " ", end="", file=sys.stderr)
+				sys.stderr.write(str(index) + " ")
 				index = index + 1
-		print("", file=sys.stderr)
+			sys.stderr.write("\n")
 
 
 def print_matrix(m):
 	for i in range(len(m)):
 		for j in range(len(m[i])):
-			print(str(m[i][j]) + " ", end="", file=sys.stderr)
-		print("", file=sys.stderr)
+			sys.stderr.write(str(m[i][j]) + " ")
+		sys.stderr.write("\n")
 
 
 class TerrainCrossing:
-	def getPath(self, Map, locations, capacity):
 
-		map_matrix = [[9, 9, 9, 9, 1], [9, 0, 9, 9, 1], [9, 0, 0, 9, 1], [9, 9, 0, 9, 1], [0, 0, 0, 3, 4]]
+	def getPath(self, world_map, locations, capacity):
+
+
+		def convert_world_map_to_list(world_map):
+			N = len(world_map)
+
+			map_matrix = [[0 for i in range(N)] for j in range(N)]
+
+			for i in range(N):
+				for j in range(N):
+					map_matrix[i][j] = int(world_map[i][j])
+
+			return map_matrix
+
+
+
+		for i in range(len(world_map)):
+			sys.stderr.write(world_map[i] + "\n")
+
+		map_matrix = convert_world_map_to_list(world_map)
+
+
 		N = len(map_matrix)
 
 		print_matrix(map_matrix)
-		print("", file=sys.stderr)
+		sys.stderr.write("\n")
 		print_matrix_ij(5)
-		print("", file=sys.stderr)
-		# print_matrix_123(5)
+		sys.stderr.write("\n")
 
 		source = 6
 		target = 20
@@ -263,7 +282,7 @@ class TerrainCrossing:
 		path = g.read_shortest_path(distances, previous, target)
 
 		for i in range(len(path)):
-			print(path[i], file=sys.stderr)
+			sys.stderr.write(str(path[i]) + "\n")
 
 		g.print_graph()
 
@@ -302,6 +321,7 @@ class TerrainCrossing:
 
 
 
+
 # -------8<------- end of solution submitted to the website -------8<-------
 
 
@@ -318,7 +338,7 @@ for i in range(L):
 capacity = int(raw_input())
 
 tc = TerrainCrossing()
-ret = tc.getPath(map, locations, capacity)
+ret = tc.getPath(Map, locations, capacity)
 print(len(ret))
 for num in ret:
 	print(num)
