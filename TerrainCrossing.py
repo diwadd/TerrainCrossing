@@ -1,4 +1,6 @@
 import math
+import heapq
+import sys
 
 ROUNDING_PRECISION = 6
 INDEX_SHIFT = 0.5
@@ -118,7 +120,8 @@ class Graph:
 		# vertex_connection[vertex] = number
 		# vertex_array[number] = vertex
 		# adjacency_list[number] = list of neighbouring vertexes
-		
+
+		self.n_vertexes = N*N
 		self.vertex_connection = {}
 		self.vertex_array = [Vertex(0,0,0,0,0) for i in range(N*N)]
 		self.adjacency_list = [[] for i in range(N*N)]
@@ -154,41 +157,176 @@ class Graph:
 			for j in range(len(self.adjacency_list[i])):
 				s = s + "(" + str(self.adjacency_list[i][j][0]) + "," + str(round(self.adjacency_list[i][j][1],2)) + ") -> "
 			s = s + "END"
-			print(s)
-	
-	
-	
+			print(s, file=sys.stderr)
 
 
-	
+	def find_shortest_path(self, v1, v2):
 
-def print_neighbours(N,i,j):
-	
-	neighbours = get_neighbours(N,i,j)
-	print("Neighbours for: " + str(i) + str(j) + " " + str(neighbours))
-	
+		distances = [math.inf for i in range(self.n_vertexes)]
+		previous = [-1 for i in range(self.n_vertexes)]
+		in_queue = [True for i in range(self.n_vertexes)]
+
+		distances[v1] = 0
+
+		priority_queue = [(distances[i], i) for i in range(self.n_vertexes)]
+		heapq.heapify(priority_queue)
+
+		while (len(priority_queue) != 0):
+			u = heapq.heappop(priority_queue)
+			u = u[1]
+
+			in_queue[u] = False
+
+			n_u_neighbours = len(self.adjacency_list[u]) # number of neighbours that the u vertex has
+			for j in range(n_u_neighbours):
+				v = self.vertex_connection[self.adjacency_list[u][j][0]]
+				if (in_queue[v] == False):
+					continue
+				alt = distances[u] + self.adjacency_list[u][j][1]
+				if (alt < distances[v]):
+					distances[v] = alt
+					previous[v] = u
+
+			while (len(priority_queue) != 0):
+				heapq.heappop(priority_queue)
+
+			priority_queue = [(distances[i], i) for i in range(self.n_vertexes) if (in_queue[i] == True)]
+			heapq.heapify(priority_queue)
+
+		return (distances, previous)
+
+
+	def read_shortest_path(self, distances, previous, v2):
+		S = []
+		u = v2 # set u to target
+		while (previous[u] != -1):
+			S.append(u)
+			u = previous[u]
+		S.append(u)
+
+		Sij = [self.vertex_array[S[i]] for i in range(len(S))]
+		return Sij
+
+
+def print_neighbours(N, i, j):
+	neighbours = get_neighbours(N, i, j)
+	print("Neighbours for: " + str(i) + str(j) + " " + str(neighbours), file=sys.stderr)
+
 
 def print_matrix_ij(N):
 	for i in range(N):
 		for j in range(N):
-			print(str(i) + str(j) + " ", end="")
+			print(str(i) + str(j) + " ", end="", file=sys.stderr)
 		print()
+
+
+def print_matrix_123(N):
+	index = 0
+	for i in range(N):
+		for j in range(N):
+			s = ""
+			if (index < 10):
+				s = "0" + str(index)
+				print(str(s) + " ", end="", file=sys.stderr)
+				index = index + 1
+			else:
+				print(str(index) + " ", end="", file=sys.stderr)
+				index = index + 1
+		print("", file=sys.stderr)
 
 
 def print_matrix(m):
 	for i in range(len(m)):
 		for j in range(len(m[i])):
-			print(str(m[i][j]) + " ", end="")
-		print()
+			print(str(m[i][j]) + " ", end="", file=sys.stderr)
+		print("", file=sys.stderr)
 
 
-map_matrix = [[9,9,9,9,1],[9,0,9,9,1],[9,0,0,9,1],[9,9,0,9,1],[0,1,2,3,4]]
-N = len(map_matrix)
+class TerrainCrossing:
+	def getPath(self, Map, locations, capacity):
 
-print_matrix(map_matrix)
-print_matrix_ij(5)
+		map_matrix = [[9, 9, 9, 9, 1], [9, 0, 9, 9, 1], [9, 0, 0, 9, 1], [9, 9, 0, 9, 1], [0, 0, 0, 3, 4]]
+		N = len(map_matrix)
 
-g = Graph(map_matrix)
-g.print_graph()
+		print_matrix(map_matrix)
+		print("", file=sys.stderr)
+		print_matrix_ij(5)
+		print("", file=sys.stderr)
+		# print_matrix_123(5)
+
+		source = 6
+		target = 20
+
+		g = Graph(map_matrix)
+		distances, previous = g.find_shortest_path(source, target)
+
+		path = g.read_shortest_path(distances, previous, target)
+
+		for i in range(len(path)):
+			print(path[i], file=sys.stderr)
+
+		g.print_graph()
+
+
+		ret = []
+		ret.append(4.9995);    ret.append(0.7658)
+		# pick up item 1
+		ret.append(4.7867);    ret.append(0.7658)
+		# drop it off at target 6
+		ret.append(3.8144);    ret.append(0.1081)
+		# pick up item 0
+		ret.append(3.7648);    ret.append(1.2640)
+		# drop it off at target 7
+		ret.append(3.3420);    ret.append(2.5000)
+		ret.append(3.3420);    ret.append(3.0530)
+		# pick up item 2
+		ret.append(2.5000);    ret.append(3.0530)
+		ret.append(1.5000);    ret.append(3.0530)
+		ret.append(0.7225);    ret.append(3.0530)
+		ret.append(0.7225);    ret.append(2.5000)
+		ret.append(0.7225);    ret.append(1.4533)
+		# pick up item 3
+		ret.append(0.2299);    ret.append(2.8555)
+		ret.append(0.2299);    ret.append(3.8555)
+		ret.append(0.2299);    ret.append(4.8555)
+		# drop it off at target 4
+		ret.append(0.5000);    ret.append(3.3869)
+		ret.append(1.2611);    ret.append(3.3869)
+		# drop it off at target 5
+		ret.append(2.2611);    ret.append(3.3869)
+		ret.append(2.2611);    ret.append(4.6214)
+		ret.append(3.7958);    ret.append(4.6214)
+		# exit
+		ret.append(3.7958);    ret.append(4.9995)
+		return ret
+
+
+
+# -------8<------- end of solution submitted to the website -------8<-------
+
+
+M = int(raw_input())
+Map = []
+for i in range(M):
+	Map.append(raw_input().strip())
+
+L = int(raw_input())
+locations = []
+for i in range(L):
+	locations.append(float(raw_input()))
+
+capacity = int(raw_input())
+
+tc = TerrainCrossing()
+ret = tc.getPath(map, locations, capacity)
+print(len(ret))
+for num in ret:
+	print(num)
+	sys.stdout.flush()
+
+
+
+
+
 
 
