@@ -308,11 +308,11 @@ class TerrainCrossing:
 
 		map_matrix = make_random_map_matrix(temp_n)
 
-		#map_matrix = [[0,1,1,1,1], \
-		#			  [2,9,9,9,9], \
-		#		      [2,9,9,9,9], \
-		#		      [1,0,0,9,9], \
-		#			  [2,0,0,1,9]]
+		#map_matrix = [[9,9,9,9,9], \
+		#			  [9,0,9,9,9], \
+		#		      [9,0,9,9,9], \
+		#		      [9,0,0,9,9], \
+		#			  [9,9,0,9,9]]
 
 		N = len(map_matrix)
 
