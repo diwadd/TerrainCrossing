@@ -1,9 +1,13 @@
 import math
 import heapq
 import sys
+import random
+import time
+
 
 ROUNDING_PRECISION = 6
 INDEX_SHIFT = 0.5
+
 
 class Vertex:
 	def __init__(self, i, j, x, y, tt):
@@ -14,6 +18,13 @@ class Vertex:
 		self.x = x
 		self.y = y
 		self.tt = tt
+
+		# There are three vertex types.
+		# 0 - empty point
+		# 1 - item to collect
+		# 2 - target location
+
+		self.vertex_type = 0
 	
 	
 	def __hash__(self):
@@ -123,12 +134,12 @@ class Graph:
 
 		self.n_vertexes = N*N
 		self.vertex_connection = {}
-		self.vertex_array = [Vertex(0,0,0,0,0) for i in range(N*N)]
-		self.adjacency_list = [[] for i in range(N*N)]
+		self.vertex_array = [Vertex(0,0,0,0,0) for i in range(self.n_vertexes)]
+		self.adjacency_list = [[] for i in range(self.n_vertexes)]
 
 		vertex_id = 0
-		for i in range(len(map_matrix)):
-			for j in range(len(map_matrix[i])):
+		for i in range(N):
+			for j in range(N):
 				tt = map_matrix[i][j]
 				
 				v = Vertex(i, j, i + INDEX_SHIFT, j + INDEX_SHIFT, tt)
@@ -165,15 +176,20 @@ class Graph:
 		distances = [float("inf") for i in range(self.n_vertexes)]
 		previous = [-1 for i in range(self.n_vertexes)]
 		in_queue = [True for i in range(self.n_vertexes)]
+		
 
-		distances[v1] = 0
+		distances[v1] = 0.0
 
-		priority_queue = [(distances[i], i) for i in range(self.n_vertexes)]
+		#priority_queue = [(distances[i], i) for i in range(self.n_vertexes)]
+		priority_queue = [(distances[v1], v1)]
 		heapq.heapify(priority_queue)
 
 		while (len(priority_queue) != 0):
 			u = heapq.heappop(priority_queue)
 			u = u[1]
+
+			if( u == v2):
+				break
 
 			in_queue[u] = False
 
@@ -186,12 +202,14 @@ class Graph:
 				if (alt < distances[v]):
 					distances[v] = alt
 					previous[v] = u
+					
+					heapq.heappush(priority_queue, (distances[v], v))
 
-			while (len(priority_queue) != 0):
-				heapq.heappop(priority_queue)
+			#while (len(priority_queue) != 0):
+			#	heapq.heappop(priority_queue)
 
-			priority_queue = [(distances[i], i) for i in range(self.n_vertexes) if (in_queue[i] == True)]
-			heapq.heapify(priority_queue)
+			#priority_queue = [(distances[i], i) for i in range(self.n_vertexes) if ((in_queue[i] == True) and (distances[i] != float("inf")))]
+			#heapq.heapify(priority_queue)
 
 		return (distances, previous)
 
@@ -208,6 +226,13 @@ class Graph:
 		return Sij
 
 
+
+def resize_string(s):
+	while (len(s) < 5):
+		s = " " + s
+	return s
+
+
 def print_neighbours(N, i, j):
 	neighbours = get_neighbours(N, i, j)
 	sys.stderr.write("Neighbours for: " + str(i) + str(j) + " " + str(neighbours) + "\n")
@@ -216,7 +241,9 @@ def print_neighbours(N, i, j):
 def print_matrix_ij(N):
 	for i in range(N):
 		for j in range(N):
-			sys.stderr.write(str(i) + str(j) + " ")
+			s = str(i) + "-" + str(j)
+			s = resize_string(s)
+			sys.stderr.write(s + " ")
 		sys.stderr.write("\n")
 
 
@@ -225,20 +252,17 @@ def print_matrix_123(N):
 	for i in range(N):
 		for j in range(N):
 			s = ""
-			if (index < 10):
-				s = "0" + str(index)
-				sys.stderr.write(str(s) + " ")
-				index = index + 1
-			else:
-				sys.stderr.write(str(index) + " ")
-				index = index + 1
-			sys.stderr.write("\n")
+			s = resize_string(str(index))
+			sys.stderr.write(s + " ")
+			index = index + 1
+		sys.stderr.write("\n")
 
 
 def print_matrix(m):
 	for i in range(len(m)):
 		for j in range(len(m[i])):
-			sys.stderr.write(str(m[i][j]) + " ")
+			s = resize_string(str(m[i][j]))
+			sys.stderr.write(s + " ")
 		sys.stderr.write("\n")
 
 
@@ -246,6 +270,9 @@ class TerrainCrossing:
 
 	def getPath(self, world_map, locations, capacity):
 
+		def make_random_map_matrix(N):
+			map_matrix = [[random.randint(0,9) for i in range(N)] for i in range(N)]
+			return map_matrix
 
 		def convert_world_map_to_list(world_map):
 			N = len(world_map)
@@ -259,32 +286,70 @@ class TerrainCrossing:
 			return map_matrix
 
 
+		def get_item_and_targets(locations):
 
-		for i in range(len(world_map)):
-			sys.stderr.write(world_map[i] + "\n")
+			n_items = len(locations)/2
 
-		map_matrix = convert_world_map_to_list(world_map)
 
+
+
+
+		#sys.stderr.write("Locations: ")
+		#sys.stderr.write(str(locations) + "\n")
+
+
+		#for i in range(len(world_map)):
+		#	sys.stderr.write(world_map[i] + "\n")
+
+		#map_matrix = convert_world_map_to_list(world_map)
+		temp_n = 50
+		source = 0
+		target = temp_n*temp_n-1
+
+		map_matrix = make_random_map_matrix(temp_n)
+
+		#map_matrix = [[0,1,1,1,1], \
+		#			  [2,9,9,9,9], \
+		#		      [2,9,9,9,9], \
+		#		      [1,0,0,9,9], \
+		#			  [2,0,0,1,9]]
 
 		N = len(map_matrix)
 
 		print_matrix(map_matrix)
 		sys.stderr.write("\n")
-		print_matrix_ij(5)
+		print_matrix_ij(temp_n)
+		sys.stderr.write("\n")
+		print_matrix_123(temp_n)
 		sys.stderr.write("\n")
 
-		source = 6
-		target = 20
 
+		sys.stderr.write("Making graph...\n")
 		g = Graph(map_matrix)
+
+		sys.stderr.write("Number of vertexes: " + str(g.n_vertexes) + "\n")
+		sys.stderr.write("Finding path...\n")
+
+		start_t = time.time()
 		distances, previous = g.find_shortest_path(source, target)
+		end_t = time.time()
+		sys.stderr.write("finding time: " + str(end_t - start_t) + "\n")
 
+		sys.stderr.write("Reading path...\n")
+		start_t = time.time()
 		path = g.read_shortest_path(distances, previous, target)
+		end_t = time.time()
+		sys.stderr.write("reading time: " + str(end_t - start_t) + "\n")
 
+		sys.stderr.write("Printing path...\n")
 		for i in range(len(path)):
-			sys.stderr.write(str(path[i]) + "\n")
+			sys.stderr.write(str(path[i]) + " -> ")
+		sys.stderr.write("\n")
 
-		g.print_graph()
+		#sys.stderr.write("Printing graph...\n")
+		#g.print_graph()
+
+		sys.stderr.write("After testing...\n")
 
 
 		ret = []
