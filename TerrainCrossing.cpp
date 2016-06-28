@@ -246,7 +246,7 @@ public:
 
 class priority_queue_compare_less{
 	public:
-		bool operator ()(pair<int, double> &pair_1, pair<int, double> &pair_2){
+		inline bool operator ()(pair<int, double> &pair_1, pair<int, double> &pair_2){
 			return pair_1.second > pair_2.second;
 		}
 };
@@ -368,72 +368,6 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target
 	
 	return shortest_path;
 }
-
-
-inline double Graph::heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id){
-
-    double d1 = distance(current_vertex_id, neighbour_id);
-    double d2 = manhatan_distance(neighbour_id, target_id);
-
-    return d1 + d2;
-
-}
-
-
-vector<Vertex> Graph::find_shortest_path_a_star(Vertex &source, Vertex &target){
-
-
-	vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
-	vector<double> previous(m_n_vertexes, -1);
-	vector<bool> visited(m_n_vertexes, false);
-
-	int source_id = m_vertex_matrix[source.get_i()][source.get_j()];
-	int target_id = m_vertex_matrix[target.get_i()][target.get_j()];
-	distances[source_id] = 0.0;
-
-	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
-	pq.push(pair<int, double>(source_id, 0.0));
-
-	while( !pq.empty() ){
-		pair<int, double> current_vertex = pq.top();
-		pq.pop();
-
-		int current_vertex_id = current_vertex.first;
-
-		if(current_vertex_id == target_id)
-			break;
-
-		visited[current_vertex_id] = true;
-
-		for(int i = 0; i < m_adjacency_list[current_vertex_id].size(); ++i){
-
-			int neighbour_vertex_id = m_adjacency_list[current_vertex_id][i].first;
-
-			if(visited[neighbour_vertex_id] == true)
-				continue;
-
-			double d = distances[current_vertex_id] + m_adjacency_list[current_vertex_id][i].second;
-			if(d < distances[neighbour_vertex_id]){
-                double h_d = heuristic_function(m_vertex_array[current_vertex_id],
-                                                m_vertex_array[neighbour_vertex_id], target);
-				distances[neighbour_vertex_id] = d;
-				previous[neighbour_vertex_id] = current_vertex_id;
-				pq.push(pair<int, double>(neighbour_vertex_id, d + h_d ));
-			}
-		}
-	}
-
-	vector<Vertex> shortest_path;
-	int u = target_id;
-	while(previous[u] != -1){
-		shortest_path.push_back(m_vertex_array[u]);
-		u = previous[u];
-	}
-	shortest_path.push_back(m_vertex_array[u]);
-
-    return shortest_path;
-}
-
 
 
 //---------------------------------
