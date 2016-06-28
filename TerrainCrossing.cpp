@@ -14,6 +14,7 @@
 #include <chrono>
 #include <list>
 #include <deque>
+#include <unordered_map>
 
 using namespace std;
 
@@ -77,6 +78,15 @@ void print_matrix_ij(int N, int offset){
 }
 
 
+bool double_compare(double &d1, double &d2){
+	return abs(d1 - d2) < 1E-6;
+}
+
+
+bool double_compare(double &&d1, double &&d2){
+	return abs(d1 - d2) < 1E-6;
+}
+
 //----------------------------
 //--------Vertex class--------
 //----------------------------
@@ -85,6 +95,7 @@ void print_matrix_ij(int N, int offset){
 
 class Vertex {
 private:
+	
 	int m_i;
 	int m_j;
 
@@ -92,12 +103,21 @@ private:
 	double m_y;
 
     int m_tt;
-	int m_vertex_type;
+	int m_vertex_type; // 0 - transfer vertex, 1 - item vertex, 2 - target vertex
+	
+	int m_id;
+	
+	bool m_visited;
+	
 
 public:
-	Vertex(int i = 0, int j = 0, double x = 0.0, double y = 0.0, int tt = 0, int vertex_type = 0):
-	m_i(i), m_j(j), m_x(x), m_y(y), m_tt(tt), m_vertex_type(vertex_type) {}
+	Vertex(int i = 0, int j = 0, double x = 0.0, double y = 0.0, int tt = 0, int vertex_type = 0, int id = -1):
+	m_i(i), m_j(j), m_x(x), m_y(y), m_tt(tt), m_vertex_type(vertex_type), m_id(id) {
+		m_visited = false;
+	}
 
+	int get_id() const {return m_id;}
+	
     int get_i() const {return m_i;}
     int get_j() const {return m_j;}
 
@@ -105,9 +125,12 @@ public:
     double get_y() const {return m_y;}
 
     int get_tt() const {return m_tt;}
-
+	int get_vertex_type() const {return m_vertex_type;}
+	
+	bool get_visited() const {return m_visited;}
 
     vector< pair<int, int> > get_neighbours(int &N);
+
 
 };
 
@@ -117,6 +140,9 @@ vector< pair<int, int> > Vertex::get_neighbours(int &N){
 
     vector< pair<int, int> > neighbours = vector< pair<int, int> >();
 
+		if (this->get_vertex_type() != 0)
+			neighbours.push_back(pair<int, int>(this->get_i(), this->get_j()));
+	
         int i_up = this->get_i()-1;
 		int j_up = this->get_j();
 		if (i_up >= 0)
@@ -139,8 +165,6 @@ vector< pair<int, int> > Vertex::get_neighbours(int &N){
 
     return neighbours;
 }
-
-
 
 
 inline double euclidean_distance(Vertex &v1, Vertex &v2){
@@ -205,13 +229,65 @@ std::ostream& operator<<(std::ostream& os, const Vertex& v)
 
 	string si = to_string(v.get_i());
 	string sj = to_string(v.get_j());
-	string s = resize_string( si+"-"+sj, UNIQUE_OFFSET);
+	string sx = to_string(v.get_x());
+	string sy = to_string(v.get_y());
+	string stt = to_string(v.get_tt());
+	string svt = to_string(v.get_vertex_type());
+	
+	string s = resize_string( si+"-"+sj+" x: "+sx+" y: "+sy+" tt: "+stt+" vertex type: "+svt, UNIQUE_OFFSET);
 
-    os << s;
+    os << s << endl;
     return os;
 }
 
 
+class VertexCompare {
+public:
+	bool operator()(const Vertex& v1, const Vertex& v2){
+		
+		bool i_true = (v1.get_i() < v2.get_i());
+		bool j_true = (v1.get_j() < v2.get_j());
+		
+		bool x_true = (v1.get_x() < v2.get_x());
+		bool y_true = (v1.get_y() < v2.get_y());
+		
+		bool tt_true = (v1.get_tt() < v2.get_tt());
+		bool vertex_type_true = (v1.get_vertex_type() < v2.get_vertex_type());
+		
+		return (i_true || j_true || x_true || y_true || tt_true || vertex_type_true);
+		
+	}	
+	
+};
+
+/*
+class VertexHash {
+public:
+	size_t operator()(const Vertex &v) const {
+		std::size_t h = std::hash<std::string>()(v.get_rep());
+		return h;
+	}
+};
+
+
+class VertexEqual {
+public:
+	bool operator()(const Vertex &v1, const Vertex &v2) const {
+	
+		bool id_true = (v1.get_id() == v2.get_id());
+		
+		bool i_true = (v1.get_i() == v2.get_i());
+		bool j_true = (v1.get_j() == v2.get_j());
+		
+		bool x_true = double_compare(v1.get_x(), v2.get_x());
+		bool y_true = double_compare(v1.get_y(), v2.get_y());
+		
+		bool tt_true = (v1.get_tt() == v2.get_tt());
+		bool vertex_type_true = (v1.get_vertex_type() == v2.get_vertex_type());
+		
+	}
+};
+*/
 
 //----------------------------
 //--------Graph class---------
@@ -224,19 +300,20 @@ private:
 
     int m_n; // world_map size
     int m_n_vertexes; // number of vertexes, m_n*m_n
+    int m_items;
     vector<Vertex> m_vertex_array;
     vector< vector<int> > m_vertex_matrix;
     vector< vector<pair<int, double> > > m_adjacency_list;
+	
 
 public:
     Graph();
-    Graph(vector< vector<int> > &map_matrix);
+    Graph(vector< vector<int> > &map_matrix, vector<double> &locations);
 
     vector<vector<int> > get_vertex_matrix() const { return m_vertex_matrix;};
     void print_graph();
 
-    vector<Vertex> find_shortest_path_dijkstra(Vertex &v1, Vertex &v2);
-    vector<Vertex> find_shortest_path_a_star(Vertex &v1, Vertex &v2);
+    vector<Vertex> find_shortest_path_dijkstra(int &source_id, int &target_id);
 
     double heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id);
 
@@ -260,10 +337,29 @@ Graph::Graph() {
 }
 
 
-Graph::Graph(vector<vector<int> > &map_matrix) {
+Graph::Graph(vector<vector<int> > &map_matrix, vector<double> &locations) {
 
+	m_items = locations.size()/4;
+
+	/*
+	vector< pair<double, double> > items(m_items, pair<double, double>());
+	vector< pair<double, double> > targets(m_items, pair<double, double>());
+	int item_index = 0;
+	for(int i = 0; i < m_items; i = i + 1){
+		double x_item = locations[2*i];
+		double y_item = locations[2*i + 1];
+	
+		double x_target = locations[2*i + 2*m_items];
+		double y_target = locations[2*i + 1 + 2*m_items];
+		
+		items[item_index] = pair<double, double>(x_item, y_item);
+		targets[item_index] = pair<double, double>(x_target, y_target);
+		item_index++;
+	}
+	*/
+	
     m_n = map_matrix.size();
-    m_n_vertexes = m_n*m_n;
+    m_n_vertexes = m_n*m_n + 2*m_items;
 
     m_vertex_array.resize(m_n_vertexes);
     m_vertex_matrix.resize(m_n);
@@ -271,9 +367,33 @@ Graph::Graph(vector<vector<int> > &map_matrix) {
         m_vertex_matrix[i].resize(m_n);
 
     int index = 0;
-    for(int i = 0; i < m_n; i++){
+	for(int i = 0; i < m_items; i = i + 1){
+		double x_item = locations[2*i];
+		double y_item = locations[2*i + 1];
+
+		int i_item = floor(x_item);
+		int j_item = floor(y_item);
+		
+		m_vertex_array[index] = Vertex(i_item, j_item, x_item, y_item, map_matrix[i_item][j_item], 1, index);
+		index++;
+	}
+	
+
+	for(int i = 0; i < m_items; i = i + 1){
+		double x_target = locations[2*i + 2*m_items];
+		double y_target = locations[2*i + 1 + 2*m_items];
+		
+		int i_target = floor(x_target);
+		int j_target = floor(y_target);
+		
+		m_vertex_array[index] = Vertex(i_target, j_target, x_target, y_target, map_matrix[i_target][j_target], 2, index);
+		index++;
+	}
+	
+	
+	for(int i = 0; i < m_n; i++){
         for(int j = 0; j < m_n; j++){
-            m_vertex_array[index] = Vertex(i,j,i+0.5,j+0.5,map_matrix[i][j]);
+            m_vertex_array[index] = Vertex(i,j,i+0.5,j+0.5,map_matrix[i][j], 0, index);
             m_vertex_matrix[i][j] = index;
             index++;
         }
@@ -291,9 +411,12 @@ Graph::Graph(vector<vector<int> > &map_matrix) {
             int j_index = neighbours[j].second;
             int vertex_id = m_vertex_matrix[i_index][j_index];
             double d = distance(m_vertex_array[i], m_vertex_array[vertex_id]);
-
+			
             m_adjacency_list[i].push_back(pair<int, double>( vertex_id , d ) );
-        }
+
+			if(m_vertex_array[i].get_vertex_type() != 0)
+				m_adjacency_list[vertex_id].push_back(pair<int, double>( i , d ) );
+		}
     }
 }
 
@@ -304,7 +427,8 @@ void Graph::print_graph(){
         int i_index = m_vertex_array[i].get_i();
         int j_index = m_vertex_array[i].get_j();
 
-        string s = "Vertex: " + to_string(i_index) + to_string(j_index) + " -> ";
+		int vertex_id = m_vertex_array[i].get_id();
+        string s = "Vertex: " + to_string(i_index) + to_string(j_index) + "," + to_string(vertex_id) + " -> ";
         for(int k = 0; k < m_adjacency_list[i].size(); k++){
             int n_i_index = m_vertex_array[ m_adjacency_list[i][k].first ].get_i();
             int n_j_index = m_vertex_array[ m_adjacency_list[i][k].first ].get_j();
@@ -317,14 +441,14 @@ void Graph::print_graph(){
 }
 
 
-vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target){
+vector<Vertex> Graph::find_shortest_path_dijkstra(int &source_id, int &target_id){
 
 	vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
 	vector<double> previous(m_n_vertexes, -1);
 	vector<bool> visited(m_n_vertexes, false);
 
-	int source_id = m_vertex_matrix[source.get_i()][source.get_j()];
-	int target_id = m_vertex_matrix[target.get_i()][target.get_j()];
+	//int source_id = source.get_id(); // m_vertex_matrix[source.get_i()][source.get_j()];
+	//int target_id = target.get_id(); //m_vertex_matrix[target.get_i()][target.get_j()];
 	distances[source_id] = 0.0;
 
 	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
@@ -342,9 +466,8 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target
 		visited[current_vertex_id] = true;
 
 		for(int i = 0; i < m_adjacency_list[current_vertex_id].size(); ++i){
-
 			int neighbour_vertex_id = m_adjacency_list[current_vertex_id][i].first;
-
+			
 			if(visited[neighbour_vertex_id] == true)
 				continue;
 
@@ -365,7 +488,6 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target
 	}
 	shortest_path.push_back(m_vertex_array[u]);
 	
-	
 	return shortest_path;
 }
 
@@ -379,6 +501,9 @@ class TerrainCrossing {
 private:
 
     vector< vector<int> > m_map_matrix;
+	
+	//vector< pair<double, double> > m_item_positions;
+	//vector< pair<double, double> > m_target_positions;
 
 public:
 
@@ -454,47 +579,42 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 		int offset = 5;
 
 
-        vector<string> custom_world_map = {"99999","99009","90909","90009","99999"};
+		//vector<string> custom_world_map = {"99999","99009","90909","90009","99999"};
 
 
-        initialize_map_matrix(custom_world_map);
-		//vector< vector<int> > random_map_matrix = generate_random_map_matrix(5);
+        initialize_map_matrix(world_map);
 
-		int random_map_size = 50;
-		m_map_matrix = generate_random_map_matrix(random_map_size);
+		//int random_map_size = 50;
+		//m_map_matrix = generate_random_map_matrix(random_map_size);
 
 
-		int source_i = 0;
-		int source_j = 0;
-		int target_i = random_map_size-1;
-		int target_j = random_map_size-1;
-        Vertex v1 = Vertex(source_i, source_j, source_i + 0.5, source_j + 0.5, m_map_matrix[source_i][source_j]);
-        Vertex v2 = Vertex(target_i, target_j, target_i + 0.5, target_j + 0.5, m_map_matrix[target_i][target_j]);
+		//int source_i = 0;
+		//int source_j = 0;
+		//int target_i = random_map_size-1;
+		//int target_j = random_map_size-1;
+        //Vertex v1 = Vertex(source_i, source_j, source_i + 0.5, source_j + 0.5, m_map_matrix[source_i][source_j], 0, random_map_size*source_i + source_j );
+        //Vertex v2 = Vertex(target_i, target_j, target_i + 0.5, target_j + 0.5, m_map_matrix[target_i][target_j], 0, random_map_size*target_i + target_j );
 
-        Graph g = Graph(m_map_matrix);
+        Graph g = Graph(m_map_matrix, locations);
         print_vector_2d(m_map_matrix, offset);
         cerr << endl;
 
-        print_matrix_ij(5, offset);
+		print_matrix_ij(5, offset);
         cerr << endl;
 
-		//g.print_graph();
+		g.print_graph();
+		cerr << endl;
 
 		std::chrono::time_point<std::chrono::system_clock> start, end;
 		start = std::chrono::system_clock::now();
-        vector<Vertex> shortest_path_dijkstra = g.find_shortest_path_dijkstra(v1, v2);
+		int source_id = 0;
+		int target_id = 4;
+        vector<Vertex> shortest_path_dijkstra = g.find_shortest_path_dijkstra(source_id, target_id);
 		end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
 
 		cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
 
-
-		start = std::chrono::system_clock::now();
-        vector<Vertex> shortest_path_a_star = g.find_shortest_path_a_star(v1, v2);
-		end = std::chrono::system_clock::now();
-		elapsed_seconds = end-start;
-
-		cerr << "A* elapsed time: " << elapsed_seconds.count() << endl;
 
 
         for(int i = 0; i < shortest_path_dijkstra.size(); i++){
@@ -502,13 +622,7 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
         }
         cerr << endl;
 
-        for(int i = 0; i < shortest_path_a_star.size(); i++){
-        	cerr << shortest_path_a_star[i] << " -> ";
-        }
-        cerr << endl;
-
-
-
+		
 		vector<double> ret;
 		ret.push_back(4.9995); ret.push_back(0.7658);
 			// pick up item 1
