@@ -141,7 +141,7 @@ vector< pair<int, int> > Vertex::get_neighbours(int &N){
 
 
 
-double euclidean_distance(Vertex &v1, Vertex &v2){
+inline double euclidean_distance(Vertex &v1, Vertex &v2){
     double x2 = pow( v1.get_x() - v2.get_x(), 2);
     double y2 = pow( v1.get_y() - v2.get_y(), 2);
 
@@ -150,7 +150,7 @@ double euclidean_distance(Vertex &v1, Vertex &v2){
 
 
 
-double manhatan_distance(Vertex &v1, Vertex &v2){
+inline double manhatan_distance(Vertex &v1, Vertex &v2){
     double i_abs = abs(v1.get_i() - v2.get_i());
     double j_abs = abs(v1.get_j() - v2.get_j());
 
@@ -200,7 +200,7 @@ double distance(Vertex &v1, Vertex &v2){
 
 std::ostream& operator<<(std::ostream& os, const Vertex& v)
 {
-	
+
 	string si = to_string(v.get_i());
 	string sj = to_string(v.get_j());
 	string s = resize_string( si+"-"+sj, UNIQUE_OFFSET);
@@ -208,6 +208,8 @@ std::ostream& operator<<(std::ostream& os, const Vertex& v)
     os << s;
     return os;
 }
+
+
 
 //----------------------------
 //--------Graph class---------
@@ -231,7 +233,10 @@ public:
     vector<vector<int> > get_vertex_matrix() const { return m_vertex_matrix;};
     void print_graph();
 
-    vector<Vertex> find_shortest_path(Vertex &v1, Vertex &v2);
+    vector<Vertex> find_shortest_path_dijkstra(Vertex &v1, Vertex &v2);
+    vector<Vertex> find_shortest_path_a_star(Vertex &v1, Vertex &v2);
+
+    double heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id);
 
 
 };
@@ -310,16 +315,12 @@ void Graph::print_graph(){
 }
 
 
-vector<Vertex> Graph::find_shortest_path(Vertex &source, Vertex &target){
+vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target){
 
-	/*
-	 * Dijkstra's algorthim implementation
-	 */
-	
 	vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
 	vector<double> previous(m_n_vertexes, -1);
 	vector<bool> visited(m_n_vertexes, false);
-	
+
 	int source_id = m_vertex_matrix[source.get_i()][source.get_j()];
 	int target_id = m_vertex_matrix[target.get_i()][target.get_j()];
 	distances[source_id] = 0.0;
@@ -327,6 +328,7 @@ vector<Vertex> Graph::find_shortest_path(Vertex &source, Vertex &target){
 	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
 	pq.push(pair<int, double>(source_id, 0.0));
 
+    int count_steps = 0;
 	while( !pq.empty() ){
 		pair<int, double> current_vertex = pq.top();
 		pq.pop();
@@ -351,9 +353,98 @@ vector<Vertex> Graph::find_shortest_path(Vertex &source, Vertex &target){
 				previous[neighbour_vertex_id] = current_vertex_id;
 				pq.push(pair<int, double>(neighbour_vertex_id, d));
 			}
+			count_steps++;
 		}
+	count_steps++;
 	}
 
+    cerr << "n steps: " << count_steps << endl;
+
+	/*
+	vector<int> path;
+	int u = target_id;
+	while(previous[u] != -1){
+		path.push_back(u);
+		u = previous[u];
+	}
+	path.push_back(u);
+
+	vector<Vertex> shortest_path(path.size(), Vertex());
+	for(int i = 0; i < path.size(); i++){
+		shortest_path[i] = m_vertex_array[path[i]];
+	}
+	*/
+
+	vector<Vertex> shortest_path;
+	int u = target_id;
+	while(previous[u] != -1){
+		shortest_path.push_back(m_vertex_array[u]);
+		u = previous[u];
+	}
+	shortest_path.push_back(m_vertex_array[u]);
+	
+	
+	return shortest_path;
+}
+
+
+inline double Graph::heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id){
+
+    double d1 = distance(current_vertex_id, neighbour_id);
+    double d2 = manhatan_distance(neighbour_id, target_id);
+
+    return d1 + d2;
+
+}
+
+
+vector<Vertex> Graph::find_shortest_path_a_star(Vertex &source, Vertex &target){
+
+
+	vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
+	vector<double> previous(m_n_vertexes, -1);
+	vector<bool> visited(m_n_vertexes, false);
+
+	int source_id = m_vertex_matrix[source.get_i()][source.get_j()];
+	int target_id = m_vertex_matrix[target.get_i()][target.get_j()];
+	distances[source_id] = 0.0;
+
+	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
+	pq.push(pair<int, double>(source_id, 0.0));
+
+    int count_steps = 0;
+	while( !pq.empty() ){
+		pair<int, double> current_vertex = pq.top();
+		pq.pop();
+
+		int current_vertex_id = current_vertex.first;
+
+		if(current_vertex_id == target_id)
+			break;
+
+		visited[current_vertex_id] = true;
+
+		for(int i = 0; i < m_adjacency_list[current_vertex_id].size(); ++i){
+
+			int neighbour_vertex_id = m_adjacency_list[current_vertex_id][i].first;
+
+			if(visited[neighbour_vertex_id] == true)
+				continue;
+
+			double d = distances[current_vertex_id] + m_adjacency_list[current_vertex_id][i].second;
+			if(d < distances[neighbour_vertex_id]){
+                double h_d = heuristic_function(m_vertex_array[current_vertex_id],
+                                                m_vertex_array[neighbour_vertex_id], target);
+				distances[neighbour_vertex_id] = d;
+				previous[neighbour_vertex_id] = current_vertex_id;
+				pq.push(pair<int, double>(neighbour_vertex_id, d + h_d ));
+			}
+			count_steps++;
+		}
+		count_steps++;
+	}
+
+    cerr << "n steps: " << count_steps << endl;
 
 	vector<int> path;
 	int u = target_id;
@@ -362,13 +453,13 @@ vector<Vertex> Graph::find_shortest_path(Vertex &source, Vertex &target){
 		u = previous[u];
 	}
 	path.push_back(u);
-	
+
 	vector<Vertex> shortest_path(path.size(), Vertex());
 	for(int i = 0; i < path.size(); i++){
 		shortest_path[i] = m_vertex_array[path[i]];
 	}
 
-	return shortest_path;
+    return shortest_path;
 }
 
 
@@ -394,8 +485,8 @@ public:
     vector<vector<int> > world_map_to_map_matrix(vector<string> world_map);
 	vector< vector<int> > generate_random_map_matrix(int N);
     vector<double> getPath(vector<string> input_map, vector<double> locations, int capacity);
-	
-	
+
+
 };
 
 
@@ -431,16 +522,16 @@ void TerrainCrossing::initialize_map_matrix(vector<string> &world_map) {
 
 vector< vector<int> > TerrainCrossing::generate_random_map_matrix(int N){
 
-		std::random_device rd; 
+		std::random_device rd;
 		std::mt19937 engine(rd());
 		std::uniform_int_distribution<> dist(MIN_TERRAIN_TYPE, MAX_TERRAIN_TYPE);
-	
+
 		vector< vector<int> > map_matrix;
 		map_matrix.resize(N);
-		
+
 		for(int i = 0; i < N; i++)
 			map_matrix[i].resize(N);
-		
+
 		for(int i = 0; i < N; i++){
 			for(int j = 0; j < N; j++){
 				map_matrix[i][j] = dist(engine);
@@ -457,16 +548,16 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 		int offset = 5;
 
 
-        vector<string> custom_world_map = {"99999","90999","90999","90099","99099"};
+        vector<string> custom_world_map = {"99999","99009","90909","90009","99999"};
 
 
         initialize_map_matrix(custom_world_map);
 		//vector< vector<int> > random_map_matrix = generate_random_map_matrix(5);
-		
+
 		int random_map_size = 50;
 		m_map_matrix = generate_random_map_matrix(random_map_size);
-		
-		
+
+
 		int source_i = 0;
 		int source_j = 0;
 		int target_i = random_map_size-1;
@@ -482,20 +573,33 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
         cerr << endl;
 
 		//g.print_graph();
-		
+
 		std::chrono::time_point<std::chrono::system_clock> start, end;
 		start = std::chrono::system_clock::now();
-        vector<Vertex> shortest_path = g.find_shortest_path(v1, v2);
+        vector<Vertex> shortest_path_dijkstra = g.find_shortest_path_dijkstra(v1, v2);
 		end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
-		
-		cerr << "Elapsed time: " << elapsed_seconds.count() << endl;
-		
-        for(int i = 0; i < shortest_path.size(); i++){
-        	cerr << shortest_path[i] << " -> ";
+
+		cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
+
+
+		start = std::chrono::system_clock::now();
+        vector<Vertex> shortest_path_a_star = g.find_shortest_path_a_star(v1, v2);
+		end = std::chrono::system_clock::now();
+		elapsed_seconds = end-start;
+
+		cerr << "A* elapsed time: " << elapsed_seconds.count() << endl;
+
+
+        for(int i = 0; i < shortest_path_dijkstra.size(); i++){
+        	cerr << shortest_path_dijkstra[i] << " -> ";
         }
         cerr << endl;
 
+        for(int i = 0; i < shortest_path_a_star.size(); i++){
+        	cerr << shortest_path_a_star[i] << " -> ";
+        }
+        cerr << endl;
 
 
 
