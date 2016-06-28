@@ -12,6 +12,8 @@
 #include <queue>
 #include <random>
 #include <chrono>
+#include <list>
+#include <deque>
 
 using namespace std;
 
@@ -328,7 +330,6 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target
 	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
 	pq.push(pair<int, double>(source_id, 0.0));
 
-    int count_steps = 0;
 	while( !pq.empty() ){
 		pair<int, double> current_vertex = pq.top();
 		pq.pop();
@@ -353,27 +354,8 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(Vertex &source, Vertex &target
 				previous[neighbour_vertex_id] = current_vertex_id;
 				pq.push(pair<int, double>(neighbour_vertex_id, d));
 			}
-			count_steps++;
 		}
-	count_steps++;
 	}
-
-    cerr << "n steps: " << count_steps << endl;
-
-	/*
-	vector<int> path;
-	int u = target_id;
-	while(previous[u] != -1){
-		path.push_back(u);
-		u = previous[u];
-	}
-	path.push_back(u);
-
-	vector<Vertex> shortest_path(path.size(), Vertex());
-	for(int i = 0; i < path.size(); i++){
-		shortest_path[i] = m_vertex_array[path[i]];
-	}
-	*/
 
 	vector<Vertex> shortest_path;
 	int u = target_id;
@@ -412,7 +394,6 @@ vector<Vertex> Graph::find_shortest_path_a_star(Vertex &source, Vertex &target){
 	priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
 	pq.push(pair<int, double>(source_id, 0.0));
 
-    int count_steps = 0;
 	while( !pq.empty() ){
 		pair<int, double> current_vertex = pq.top();
 		pq.pop();
@@ -439,25 +420,16 @@ vector<Vertex> Graph::find_shortest_path_a_star(Vertex &source, Vertex &target){
 				previous[neighbour_vertex_id] = current_vertex_id;
 				pq.push(pair<int, double>(neighbour_vertex_id, d + h_d ));
 			}
-			count_steps++;
 		}
-		count_steps++;
 	}
 
-    cerr << "n steps: " << count_steps << endl;
-
-	vector<int> path;
+	vector<Vertex> shortest_path;
 	int u = target_id;
 	while(previous[u] != -1){
-		path.push_back(u);
+		shortest_path.push_back(m_vertex_array[u]);
 		u = previous[u];
 	}
-	path.push_back(u);
-
-	vector<Vertex> shortest_path(path.size(), Vertex());
-	for(int i = 0; i < path.size(); i++){
-		shortest_path[i] = m_vertex_array[path[i]];
-	}
+	shortest_path.push_back(m_vertex_array[u]);
 
     return shortest_path;
 }
