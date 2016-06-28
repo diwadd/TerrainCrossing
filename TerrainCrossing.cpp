@@ -15,6 +15,7 @@
 #include <list>
 #include <deque>
 #include <unordered_map>
+#include <tuple>
 
 using namespace std;
 
@@ -260,34 +261,6 @@ public:
 	
 };
 
-/*
-class VertexHash {
-public:
-	size_t operator()(const Vertex &v) const {
-		std::size_t h = std::hash<std::string>()(v.get_rep());
-		return h;
-	}
-};
-
-
-class VertexEqual {
-public:
-	bool operator()(const Vertex &v1, const Vertex &v2) const {
-	
-		bool id_true = (v1.get_id() == v2.get_id());
-		
-		bool i_true = (v1.get_i() == v2.get_i());
-		bool j_true = (v1.get_j() == v2.get_j());
-		
-		bool x_true = double_compare(v1.get_x(), v2.get_x());
-		bool y_true = double_compare(v1.get_y(), v2.get_y());
-		
-		bool tt_true = (v1.get_tt() == v2.get_tt());
-		bool vertex_type_true = (v1.get_vertex_type() == v2.get_vertex_type());
-		
-	}
-};
-*/
 
 //----------------------------
 //--------Graph class---------
@@ -340,23 +313,6 @@ Graph::Graph() {
 Graph::Graph(vector<vector<int> > &map_matrix, vector<double> &locations) {
 
 	m_items = locations.size()/4;
-
-	/*
-	vector< pair<double, double> > items(m_items, pair<double, double>());
-	vector< pair<double, double> > targets(m_items, pair<double, double>());
-	int item_index = 0;
-	for(int i = 0; i < m_items; i = i + 1){
-		double x_item = locations[2*i];
-		double y_item = locations[2*i + 1];
-	
-		double x_target = locations[2*i + 2*m_items];
-		double y_target = locations[2*i + 1 + 2*m_items];
-		
-		items[item_index] = pair<double, double>(x_item, y_item);
-		targets[item_index] = pair<double, double>(x_target, y_target);
-		item_index++;
-	}
-	*/
 	
     m_n = map_matrix.size();
     m_n_vertexes = m_n*m_n + 2*m_items;
@@ -366,6 +322,7 @@ Graph::Graph(vector<vector<int> > &map_matrix, vector<double> &locations) {
     for(int i = 0; i < m_n; i++)
         m_vertex_matrix[i].resize(m_n);
 
+	// add item vertexes to graph
     int index = 0;
 	for(int i = 0; i < m_items; i = i + 1){
 		double x_item = locations[2*i];
@@ -378,7 +335,7 @@ Graph::Graph(vector<vector<int> > &map_matrix, vector<double> &locations) {
 		index++;
 	}
 	
-
+	// add target vertexes to graph
 	for(int i = 0; i < m_items; i = i + 1){
 		double x_target = locations[2*i + 2*m_items];
 		double y_target = locations[2*i + 1 + 2*m_items];
@@ -500,21 +457,22 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(int &source_id, int &target_id
 class TerrainCrossing {
 private:
 
+	int m_items;
     vector< vector<int> > m_map_matrix;
 	
-	//vector< pair<double, double> > m_item_positions;
-	//vector< pair<double, double> > m_target_positions;
+	vector< tuple<int, double, double> > m_items_vector;
+	vector< tuple<int, double, double> > m_targets_vector;
 
 public:
 
 	TerrainCrossing();
 
-
 	void initialize_map_matrix(vector<string> &input_map);
 
-
-    vector<vector<int> > world_map_to_map_matrix(vector<string> world_map);
 	vector< vector<int> > generate_random_map_matrix(int N);
+	
+	int get_closest_target(int &item_id);
+	
     vector<double> getPath(vector<string> input_map, vector<double> locations, int capacity);
 
 
@@ -528,8 +486,11 @@ public:
 
 TerrainCrossing::TerrainCrossing(){
 
+	m_items = 0;
+	
     m_map_matrix = vector< vector<int> >();
-
+	m_items_vector = vector< tuple<int, double, double> >();
+	m_targets_vector = vector< tuple<int, double, double> >();
 }
 
 
@@ -572,28 +533,38 @@ vector< vector<int> > TerrainCrossing::generate_random_map_matrix(int N){
 }
 
 
+int TerrainCrossing::get_closest_target(int &current_item_id){
+	
+	double xi = get<1>(m_items_vector[current_item_id]);
+	double yi = get<2>(m_items_vector[current_item_id]);
+	
+	double d = std::numeric_limits<double>::max();
+	int closest_target_id = -1;
+	for(int i = 0; i < m_items; i++){
+		
+		if(get<3>(m_targets_vector[i]) == true)
+			continue
+		
+		double xt = get<1>(m_targets_vector[i]);
+		double yt = get<2>(m_targets_vector[i]);
+		
+		double current_d = sqrt( pow(xi - xt, 2) + pow(yi - xt, 2) );
+		if (current_d < d){
+			d = current_d;
+			closest_target_id = i;
+		}
+	}
+	return closest_target_id;
+}
+
 
 vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double> locations, int capacity) {
 
+		m_items = locations.size()/4;
 		int N = world_map.size();
 		int offset = 5;
-
-
-		//vector<string> custom_world_map = {"99999","99009","90909","90009","99999"};
-
-
+		
         initialize_map_matrix(world_map);
-
-		//int random_map_size = 50;
-		//m_map_matrix = generate_random_map_matrix(random_map_size);
-
-
-		//int source_i = 0;
-		//int source_j = 0;
-		//int target_i = random_map_size-1;
-		//int target_j = random_map_size-1;
-        //Vertex v1 = Vertex(source_i, source_j, source_i + 0.5, source_j + 0.5, m_map_matrix[source_i][source_j], 0, random_map_size*source_i + source_j );
-        //Vertex v2 = Vertex(target_i, target_j, target_i + 0.5, target_j + 0.5, m_map_matrix[target_i][target_j], 0, random_map_size*target_i + target_j );
 
         Graph g = Graph(m_map_matrix, locations);
         print_vector_2d(m_map_matrix, offset);
@@ -615,13 +586,52 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 
 		cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
 
-
-
         for(int i = 0; i < shortest_path_dijkstra.size(); i++){
         	cerr << shortest_path_dijkstra[i] << " -> ";
         }
         cerr << endl;
 
+	
+		
+		vector< tuple<int, double, double, bool> > items_vector;
+		vector< tuple<int, double, double, bool> > targets_vector;
+		
+		items_vector.resize(m_items);
+		targets_vector.resize(m_items);
+		
+		int index = 0;
+		for(int i = 0; i < m_items; i++){
+			get<0>(items_vector[i]) = index;
+			get<1>(items_vector[i]) = locations[2*i];;
+			get<2>(items_vector[i]) = locations[2*i + 1];
+			get<3>(items_vector[i]) = false;
+			index++;
+		}
+		
+		for(int i = 0; i < m_items; i++){
+			get<0>(targets_vector[i]) = index;
+			get<1>(targets_vector[i]) = locations[2*i + 2*m_items];;
+			get<2>(targets_vector[i]) = locations[2*i + 1 + 2*m_items];
+			get<3>(targets_vector[i]) = false;
+			index++;
+		}
+		
+		
+		
+		for(int i = 0; i < m_items; i++){
+			
+			int current_item_id = i;
+			int closest_target_id = get_closest_target(current_item_id);
+			
+			
+			
+			
+			
+		}
+		
+		
+		
+		
 		
 		vector<double> ret;
 		ret.push_back(4.9995); ret.push_back(0.7658);
