@@ -294,6 +294,11 @@ public:
 };
 
 
+//-------------------------------------------
+//--------Graph class implementation---------
+//-------------------------------------------
+
+
 class priority_queue_compare_less{
 	public:
 		inline bool operator ()(pair<int, double> &pair_1, pair<int, double> &pair_2){
@@ -457,11 +462,12 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(int &source_id, int &target_id
 class TerrainCrossing {
 private:
 
-	int m_items;
+	int m_number_of_items;
+	int m_map_size;
     vector< vector<int> > m_map_matrix;
 	
-	vector< tuple<int, double, double> > m_items_vector;
-	vector< tuple<int, double, double> > m_targets_vector;
+	vector< tuple<int, double, double, bool> > m_items_vector;
+	vector< tuple<int, double, double, bool> > m_targets_vector;
 
 public:
 
@@ -470,6 +476,10 @@ public:
 	void initialize_map_matrix(vector<string> &input_map);
 
 	vector< vector<int> > generate_random_map_matrix(int N);
+	
+	void initialize_item_and_target_vectors(vector<double> &locations);
+	
+	int find_outermost_item();
 	
 	int get_closest_target(int &item_id);
 	
@@ -486,11 +496,12 @@ public:
 
 TerrainCrossing::TerrainCrossing(){
 
-	m_items = 0;
+	m_number_of_items = 0;
+	m_map_size = 0;
 	
     m_map_matrix = vector< vector<int> >();
-	m_items_vector = vector< tuple<int, double, double> >();
-	m_targets_vector = vector< tuple<int, double, double> >();
+	m_items_vector = vector< tuple<int, double, double, bool> >();
+	m_targets_vector = vector< tuple<int, double, double, bool> >();
 }
 
 
@@ -533,6 +544,50 @@ vector< vector<int> > TerrainCrossing::generate_random_map_matrix(int N){
 }
 
 
+void TerrainCrossing::initialize_item_and_target_vectors(vector<double> &locations){
+	
+	m_items_vector.resize(m_number_of_items);
+	m_targets_vector.resize(m_number_of_items);
+		
+	int index = 0;
+	for(int i = 0; i < m_number_of_items; i++){
+		get<0>(m_items_vector[i]) = index;
+		get<1>(m_items_vector[i]) = locations[2*i];;
+		get<2>(m_items_vector[i]) = locations[2*i + 1];
+		get<3>(m_items_vector[i]) = false;
+		index++;
+	}
+		
+	for(int i = 0; i < m_number_of_items; i++){
+		get<0>(m_targets_vector[i]) = index;
+		get<1>(m_targets_vector[i]) = locations[2*i + 2*m_number_of_items];;
+		get<2>(m_targets_vector[i]) = locations[2*i + 1 + 2*m_number_of_items];
+		get<3>(m_targets_vector[i]) = false;
+		index++;
+	}
+}
+
+
+int TerrainCrossing::find_outermost_item(){
+	
+	double x_y_center = (double)m_map_size/2.0;
+	
+	double outermost_item = -1;
+	double d = std::numeric_limits<double>::max();
+	for(int i = 0; i < m_number_of_items; i++){
+		double xt = get<1>(m_items_vector[i]);
+		double yt = get<2>(m_items_vector[i]);
+		
+		double current_d = sqrt( pow(x_y_center - xt, 2) + pow(x_y_center - xt, 2) );
+		if(current_d < d){
+			d = current_d;
+			outermost_item = i;
+		}
+	}
+	return outermost_item;
+}
+
+
 int TerrainCrossing::get_closest_target(int &current_item_id){
 	
 	double xi = get<1>(m_items_vector[current_item_id]);
@@ -540,10 +595,12 @@ int TerrainCrossing::get_closest_target(int &current_item_id){
 	
 	double d = std::numeric_limits<double>::max();
 	int closest_target_id = -1;
-	for(int i = 0; i < m_items; i++){
+	
+
+	for(int i = 0; i < m_number_of_items; i++){
 		
 		if(get<3>(m_targets_vector[i]) == true)
-			continue
+			continue;
 		
 		double xt = get<1>(m_targets_vector[i]);
 		double yt = get<2>(m_targets_vector[i]);
@@ -554,14 +611,15 @@ int TerrainCrossing::get_closest_target(int &current_item_id){
 			closest_target_id = i;
 		}
 	}
+
 	return closest_target_id;
 }
 
 
 vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double> locations, int capacity) {
 
-		m_items = locations.size()/4;
-		int N = world_map.size();
+		m_number_of_items = locations.size()/4;
+		int m_map_size = world_map.size();
 		int offset = 5;
 		
         initialize_map_matrix(world_map);
@@ -583,55 +641,28 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
         vector<Vertex> shortest_path_dijkstra = g.find_shortest_path_dijkstra(source_id, target_id);
 		end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed_seconds = end-start;
-
 		cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
 
-        for(int i = 0; i < shortest_path_dijkstra.size(); i++){
+        for(int i = 0; i < shortest_path_dijkstra.size(); i++)
         	cerr << shortest_path_dijkstra[i] << " -> ";
-        }
         cerr << endl;
+		
 
-	
 		
-		vector< tuple<int, double, double, bool> > items_vector;
-		vector< tuple<int, double, double, bool> > targets_vector;
+		initialize_item_and_target_vectors(locations);
 		
-		items_vector.resize(m_items);
-		targets_vector.resize(m_items);
+		int outermost_item = find_outermost_item();
+		cerr << "Outermost item: " << outermost_item << endl;
 		
-		int index = 0;
-		for(int i = 0; i < m_items; i++){
-			get<0>(items_vector[i]) = index;
-			get<1>(items_vector[i]) = locations[2*i];;
-			get<2>(items_vector[i]) = locations[2*i + 1];
-			get<3>(items_vector[i]) = false;
-			index++;
-		}
-		
-		for(int i = 0; i < m_items; i++){
-			get<0>(targets_vector[i]) = index;
-			get<1>(targets_vector[i]) = locations[2*i + 2*m_items];;
-			get<2>(targets_vector[i]) = locations[2*i + 1 + 2*m_items];
-			get<3>(targets_vector[i]) = false;
-			index++;
-		}
-		
-		
-		
-		for(int i = 0; i < m_items; i++){
+		for(int i = 0; i < m_number_of_items; i++){
 			
 			int current_item_id = i;
-			int closest_target_id = get_closest_target(current_item_id);
-			
-			
-			
-			
-			
+			int closest_target_id = get_closest_target(current_item_id);	
 		}
 		
 		
 		
-		
+		cerr << "Map size: " << m_map_size << endl;
 		
 		vector<double> ret;
 		ret.push_back(4.9995); ret.push_back(0.7658);
