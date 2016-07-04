@@ -16,12 +16,7 @@
 #include <deque>
 #include <unordered_map>
 #include <tuple>
-
-//#include <boost/heap/priority_queue.hpp>
-//#include <boost/heap/binomial_heap.hpp>
-//#include <boost/heap/fibonacci_heap.hpp>
-
-
+#include <array>
 
 using namespace std;
 
@@ -54,22 +49,22 @@ string resize_string(string &&s, int N){
 template<typename Type> void print_vector_2d(vector< vector<Type> > &v, int offset){
 
 	for(int i = 0; i < v.size(); i++){
-			for(int j = 0; j < v[i].size(); j++){
-					string s = to_string(v[i][j]);
-					s = resize_string(s, offset);
-					cerr << s << " ";
-			}
-			cerr << endl;
+		for(int j = 0; j < v[i].size(); j++){
+			string s = to_string(v[i][j]);
+			s = resize_string(s, offset);
+			cerr << s << " ";
+		}
+		cerr << endl;
 	}
 }
 
 
 template<typename Type> void print_vector_2d(vector< vector<Type> > &&v){
 	for(int i = 0; i < v.size(); i++){
-			for(int j = 0; j < v[i].size(); j++){
-					cerr << v[j][i] << " ";
-			}
-			cerr << endl;
+		for(int j = 0; j < v[i].size(); j++){
+				cerr << v[j][i] << " ";
+		}
+		cerr << endl;
 	}
 }
 
@@ -131,6 +126,9 @@ public:
 
     double get_x() const {return m_x;}
     double get_y() const {return m_y;}
+    
+    void set_x(double x) { m_x = x;}
+    void set_y(double y) { m_y = y;}
 
     int get_tt() const {return m_tt;}
 	int get_vertex_type() const {return m_vertex_type;}
@@ -234,6 +232,15 @@ double distance(Vertex &v1, Vertex &v2){
 }
 
 
+
+double triple_path_distance(Vertex &v1, Vertex &v2, Vertex &v3){
+	
+	return distance(v1,v2) + distance(v2, v3);
+}
+
+
+
+
 std::ostream& operator<<(std::ostream& os, const Vertex& v) {
 
 	string sindex = to_string(v.get_id());
@@ -296,6 +303,7 @@ public:
     Graph();
     Graph(vector< vector<int> > &map_matrix, vector<double> &locations);
 
+    
     vector<vector<int> > get_vertex_matrix() const { return m_vertex_matrix;};
     int return_vertex_id(int &i, int &j) {return m_vertex_matrix[i][j];}
     double return_vertex_x(int &vertex_id) {return m_vertex_array[vertex_id].get_x();}
@@ -307,6 +315,7 @@ public:
 	vector<Vertex> find_shortest_path_a_star(int &source_id, int &target_id);
 
     double path_cost(vector<Vertex> &path);
+    double many_path_cost(vector< vector<Vertex> > &path_vectors);
 
     double heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id);
 
@@ -409,6 +418,7 @@ Graph::Graph(vector<vector<int> > &map_matrix, vector<double> &locations) {
 }
 
 
+
 void Graph::print_graph(){
 
     for(int i = 0; i < m_vertex_array.size(); i++){
@@ -429,6 +439,7 @@ void Graph::print_graph(){
 }
 
 
+/*
 vector<Vertex> Graph::find_shortest_path_dijkstra(int &source_id, int &target_id){
 
     vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
@@ -478,6 +489,17 @@ vector<Vertex> Graph::find_shortest_path_dijkstra(int &source_id, int &target_id
 
     return shortest_path;
 }
+*/
+
+
+double Graph::many_path_cost(vector< vector<Vertex> > &path_vectors){
+	
+	double total_cost = 0.0;
+	for(int i = 0; i < path_vectors.size(); i++){
+		total_cost = total_cost + path_cost(path_vectors[i]);
+	}
+	return total_cost;
+}
 
 
 inline double Graph::heuristic_function(Vertex &current_vertex_id, Vertex &neighbour_id, Vertex &target_id){
@@ -488,9 +510,6 @@ inline double Graph::heuristic_function(Vertex &current_vertex_id, Vertex &neigh
 
 inline vector<Vertex> Graph::find_shortest_path_a_star(int &source_id, int &target_id){
 
-    //vector<double> distances(m_n_vertexes, std::numeric_limits<double>::max());
-    //vector<double> previous(m_n_vertexes, -1);
-    //vector<bool> visited(m_n_vertexes, false);
 
     for(int i = 0; i < m_n_vertexes; i++){
         m_distances[i] = std::numeric_limits<double>::max();
@@ -498,14 +517,7 @@ inline vector<Vertex> Graph::find_shortest_path_a_star(int &source_id, int &targ
         m_visited[i] = false;
     }
 
-    //int source_id = m_vertex_matrix[source.get_i()][source.get_j()];
-    //int target_id = m_vertex_matrix[target.get_i()][target.get_j()];
     m_distances[source_id] = 0.0;
-
-    //boost::heap::priority_queue<pair<int, double>, boost::heap::compare<priority_queue_compare_less> > pq;
-    //boost::heap::binomial_heap<pair<int, double>, boost::heap::compare<priority_queue_compare_less> > pq;
-    //boost::heap::fibonacci_heap<pair<int, double>, boost::heap::compare<priority_queue_compare_less> > pq;
-    
 
     priority_queue< pair<int, double>, vector< pair<int, double> >, priority_queue_compare_less> pq;
     pq.push(pair<int, double>(source_id, 0.0));
@@ -533,7 +545,12 @@ inline vector<Vertex> Graph::find_shortest_path_a_star(int &source_id, int &targ
                 m_distances[neighbour_vertex_id] = d;
                 m_previous[neighbour_vertex_id] = current_vertex_id;
                 //pq.push(pair<int, double>(neighbour_vertex_id, d + manhatan_distance(m_vertex_array[neighbour_vertex_id], m_vertex_array[target_id]) ));
-                pq.push(pair<int, double>(neighbour_vertex_id, d ));
+                
+                // there is a problem with TerrainCrossingVis.java if you visit the same item more than once
+                if((neighbour_vertex_id != target_id) && (m_vertex_array[neighbour_vertex_id].get_vertex_type() != 0 ))
+                	continue;
+                else
+                	pq.push(pair<int, double>(neighbour_vertex_id, d ));
             }
         }
     }
@@ -607,7 +624,20 @@ public:
     int get_closest_border_vertex(Graph &g, int &source_id);
 
     vector<double> get_final_path(vector< vector<Vertex> > &path_vectors);
+    
+    vector<vector<Vertex> > search_for_path_the_random_greedy_way(Graph &g, int &capacity, int &smetric_type);
 
+    void print_path(vector<Vertex> &path);
+    void print_final_path(Graph &g, vector< vector<Vertex> > &path_vectors);
+    
+    //void get_final_path_cost(vector<double> ret);
+    //void adjust_final_path(vector<double> ret);
+    
+    vector<Vertex> get_final_path_as_vertex_vector(vector< vector<Vertex> >  &path_vectors);
+    
+    void optimize_final_vertex_path(vector<Vertex> &path_vectors, int n_iterations);
+    vector<double> convert_final_vertex_path_to_normal(vector<Vertex> &path_vectors);
+    
     vector<double> getPath(vector<string> input_map, vector<double> locations, int capacity);
 };
 
@@ -643,7 +673,7 @@ void TerrainCrossing::initialize_map_matrix(vector<string> &world_map) {
 	// Fill the map matrix.
 	for(int i = 0; i < N; i++){
 		for(int j = 0; j < world_map[i].length(); j++){
-				m_map_matrix[i][j] = world_map[i][j] - '0';
+				m_map_matrix[i][j] = world_map[j][i] - '0';
 		}
 	}
 }
@@ -788,7 +818,7 @@ int TerrainCrossing::get_closest_vertex_euclidean(int &current_item_id){
 
 pair<int, double> TerrainCrossing::get_closest_item_a_star(Graph &g, int &source_id, int metric_type = 0){
 
-        double d = std::numeric_limits<double>::max();
+    double d = std::numeric_limits<double>::max();
 	int closest_item_id = -1;
 
 
@@ -827,7 +857,7 @@ pair<int, double> TerrainCrossing::get_closest_item_a_star(Graph &g, int &source
 
 pair<int, double> TerrainCrossing::get_closest_target_a_star(Graph &g, int &source_id, int metric_type = 0){
 
-        double d = std::numeric_limits<double>::max();
+    double d = std::numeric_limits<double>::max();
 	int closest_target_id = -1;
 
 
@@ -886,9 +916,6 @@ int TerrainCrossing::get_closest_border_vertex(Graph &g, int &source_id){
 
 vector<double> TerrainCrossing::get_final_path(vector< vector<Vertex> > &path_vectors){
 
-        std::random_device rd;
-        std::mt19937 engine(rd());
-        std::uniform_int_distribution<> small_number_dist(-0.01, 0.01);
 
 	vector<double> final_path;
 	int n_paths = path_vectors.size();
@@ -919,10 +946,59 @@ vector<double> TerrainCrossing::get_final_path(vector< vector<Vertex> > &path_ve
 
 	for(int i = 0; i < path_vectors.size(); i++){
 		for(int j = path_vectors[i].size()-2; j >= 0; j--){
-                        // the 0.0005 offset is required to meet the 1E-3 condition of
-                        // visiting an item/target
-			final_path.push_back(path_vectors[i][j].get_x() + 0.0005);
-			final_path.push_back(path_vectors[i][j].get_y() + 0.0005);
+            // the small offset is required to meet the 1E-3 condition of
+            // visiting an item/target
+			double so = 0.0005; // small offset
+			
+			double px = path_vectors[i][j].get_x();
+			double py = path_vectors[i][j].get_y();
+
+			if(path_vectors[i][j].get_vertex_type() == 0){
+				final_path.push_back(px);
+				final_path.push_back(py);
+				continue;
+			}
+			
+			
+			int px_i = floor(px);
+			int py_j = floor(py);
+			
+			double cx = px_i + 0.5;
+			double cy = py_j + 0.5;
+			
+			if( px > cx && py > cy ){
+				px = px - so;
+				py = py - so;
+				final_path.push_back(px);
+				final_path.push_back(py);
+				continue;
+			}
+			
+			if( px < cx && py < cy ){
+				px = px + so;
+				py = py + so;
+				final_path.push_back(px);
+				final_path.push_back(py);
+				continue;
+			}
+
+			if( px < cx && py > cy ){
+				px = px + so;
+				py = py - so;
+				final_path.push_back(px);
+				final_path.push_back(py);
+				continue;
+			}
+
+			if( px > cx && py < cy ){
+				px = px - so;
+				py = py + so;
+				final_path.push_back(px);
+				final_path.push_back(py);
+				continue;
+			}
+
+
 		}
 	}
 	// add the departure point from the map
@@ -953,57 +1029,140 @@ vector<double> TerrainCrossing::get_final_path(vector< vector<Vertex> > &path_ve
 }
 
 
-vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double> locations, int capacity) {
 
 
-        m_number_of_items = locations.size()/4;
-        m_map_size = world_map.size();
-        int offset = 5;
+vector<Vertex> TerrainCrossing::get_final_path_as_vertex_vector(vector< vector<Vertex> >  &path_vectors){
+	
+	// this is similar as get_final_path but returns a vector of Vertexes
+	
+	vector<Vertex> final_path;
+	int n_paths = path_vectors.size();
 
-        //cerr << "m_map_size: " << m_map_size << endl;
-        //cerr << "m_number_of_items: " << m_number_of_items << endl;
+	// add the entry point
+	Vertex start_vertex = path_vectors[0][path_vectors[0].size()-1];
+	int si = start_vertex.get_i();
+	int sj = start_vertex.get_j();
 
-        initialize_map_matrix(world_map);
+	double sx = start_vertex.get_x();
+	double sy = start_vertex.get_y();
 
-        Graph g = Graph(m_map_matrix, locations);
-        //print_vector_2d(m_map_matrix, offset);
-        //cerr << endl;
+	int stt = start_vertex.get_tt();
+	int s_vertex_type = start_vertex.get_vertex_type();
+	int s_id = start_vertex.get_id();
+	
+	if(si == 0)
+                sx = EPSILON;
 
-        //print_matrix_ij(20, offset);
-        //cerr << endl;
+	if((sj == 0) && (si > 0) && (si < m_map_size-1))
+                sy = EPSILON;
 
-        //g.print_graph();
-        //cerr << endl;
+	if((sj == m_map_size-1) && (si > 0) && (si < m_map_size-1))
+                sy = sy + 0.5 - EPSILON;
 
-        std::chrono::time_point<std::chrono::system_clock> start, end;
-        start = std::chrono::system_clock::now();
-        int source_id = 0;
-        int target_id = m_map_size*m_map_size-1;
-        //vector<Vertex> shortest_path = g.find_shortest_path_dijkstra(source_id, target_id);
-        vector<Vertex> shortest_path = g.find_shortest_path_a_star(source_id, target_id);
-        end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end-start;
-        cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
+	if(si == m_map_size-1)
+                sx = m_map_size - EPSILON;
+       
+	
+	final_path.push_back(Vertex(si, sj, sx, sy, stt, s_vertex_type, s_id));
+	
 
-        //cerr << "Shortest path: " << endl << endl;
-        //for(int i = 0; i < shortest_path.size(); i++)
-        //	cerr << shortest_path[i] << " -> ";
-        //cerr << endl << endl;
+	for(int i = 0; i < path_vectors.size(); i++){
+		for(int j = path_vectors[i].size()-2; j >= 0; j--){
+            // the small offset is required to meet the 1E-3 condition of
+            // visiting an item/target
+			double so = 0.0005; // small offset
 
-        //double cost = g.path_cost(shortest_path);
-        //cerr << "Cost: " << cost << endl;
+			int px_i = path_vectors[i][j].get_i();
+			int py_j = path_vectors[i][j].get_j();
 
-        initialize_item_and_target_vectors(locations);
-        initialize_border_vertexes(g);
+			double px = path_vectors[i][j].get_x();
+			double py = path_vectors[i][j].get_y();
+
+			int ptt = path_vectors[i][j].get_tt();
+			int p_vertex_type = path_vectors[i][j].get_vertex_type();
+			int p_id = path_vectors[i][j].get_id();
+			
+			
+			if(path_vectors[i][j].get_vertex_type() == 0){
+				final_path.push_back(Vertex(px_i, py_j, px, py, ptt, p_vertex_type, p_id));
+				continue;
+			}
+			
+			
+			double cx = px_i + 0.5;
+			double cy = py_j + 0.5;
+			
+			if( px > cx && py > cy ){
+				px = px - so;
+				py = py - so;
+				final_path.push_back(Vertex(px_i, py_j, px, py, ptt, p_vertex_type, p_id));
+				continue;
+			}
+			
+			if( px < cx && py < cy ){
+				px = px + so;
+				py = py + so;
+				final_path.push_back(Vertex(px_i, py_j, px, py, ptt, p_vertex_type, p_id));
+				continue;
+			}
+
+			if( px < cx && py > cy ){
+				px = px + so;
+				py = py - so;
+				final_path.push_back(Vertex(px_i, py_j, px, py, ptt, p_vertex_type, p_id));
+				continue;
+			}
+
+			if( px > cx && py < cy ){
+				px = px - so;
+				py = py + so;
+				final_path.push_back(Vertex(px_i, py_j, px, py, ptt, p_vertex_type, p_id));
+				continue;
+			}
 
 
+		}
+	}
+	// add the departure point from the map
+	Vertex final_vertex = path_vectors[path_vectors.size()-1][0];
+	int fi = final_vertex.get_i();
+	int fj = final_vertex.get_j();
+
+	double fx = final_vertex.get_x();
+	double fy = final_vertex.get_y();
+
+	int ftt = final_vertex.get_tt();
+	int f_vertex_type = final_vertex.get_vertex_type();
+	int f_id = final_vertex.get_id();
+
+        // these ifs are mutually exclussive
+	if(fi == 0)
+		fx = EPSILON;
+
+	if((fj == 0) && (fi > 0) && (fi < m_map_size-1))
+		fy = EPSILON;
+
+	if((fj == m_map_size-1) && (fi > 0) && (fi < m_map_size-1))
+		fy = fy + 0.5 - EPSILON;
+
+	if(fi == m_map_size-1)
+		fx = m_map_size - EPSILON;
+
+	final_path.push_back(Vertex(fi, fj, fx, fy, ftt, f_vertex_type, f_id));
+
+	
+	return final_path;
+	
+}
+
+
+
+vector< vector<Vertex> > TerrainCrossing::search_for_path_the_random_greedy_way(Graph &g, int &capacity, int &metric_type){
+    
         std::random_device rd;
-        std::mt19937 engine(rd());
+        std::mt19937 engine(1);
         std::uniform_int_distribution<> border_vertex_dist(0, m_number_of_border_vertexes - 1);
-
-
-        start = std::chrono::system_clock::now();
-
+        
         vector< vector<Vertex> > path_vectors;
 
         int number_of_unvisited_targets = m_number_of_items; // number_of_targets == number_of_items
@@ -1011,10 +1170,8 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
         int number_of_items_in_bag = 0;
         int rbv = m_border_vertex_ids[border_vertex_dist(engine)]; // random border vertex, this is the starting vertex of the path
 
-        const int METRIC_TYPE = 2;
-
         //cerr << "We are here" << endl;
-        pair<int, double> start_item = get_closest_item_a_star(g, rbv, METRIC_TYPE);
+        pair<int, double> start_item = get_closest_item_a_star(g, rbv, metric_type);
         //cerr << "We are here 1.5" << endl;
         int starting_point_id = start_item.first;
         double start_item_dist = start_item.second;
@@ -1047,7 +1204,7 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 
             if((number_of_items_in_bag == 0) && (number_of_unvisited_items != 0)){
 
-                pair<int, double> closest_item = get_closest_item_a_star(g, starting_point_id, METRIC_TYPE);
+                pair<int, double> closest_item = get_closest_item_a_star(g, starting_point_id, metric_type);
                 closest_item_id = closest_item.first;
                 closest_item_dist = closest_item.second;
 
@@ -1065,7 +1222,7 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
             //cerr << "We are here 5" << endl;
 
             if((number_of_items_in_bag < capacity) && (number_of_unvisited_items != 0)){
-                pair<int, double> closest_item = get_closest_item_a_star(g, starting_point_id, METRIC_TYPE);
+                pair<int, double> closest_item = get_closest_item_a_star(g, starting_point_id, metric_type);
                 closest_item_id = closest_item.first;
                 closest_item_dist = closest_item.second;
             }
@@ -1077,7 +1234,7 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
             double closest_target_dist = std::numeric_limits<double>::max();
 
             if(number_of_items_in_bag != 0){
-                pair<int, double> closest_target = get_closest_target_a_star(g, starting_point_id, METRIC_TYPE);
+                pair<int, double> closest_target = get_closest_target_a_star(g, starting_point_id, metric_type);
                 closest_target_id = closest_target.first;
                 closest_target_dist = closest_target.second;
             }
@@ -1110,14 +1267,193 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 
         }
 
+        
+        // path found, reset if items were visited
+        for(int i = 0; i < m_number_of_items; i++){
+        	get<3>(m_items_vector[i]) = false;
+        	get<3>(m_targets_vector[i]) = false;	
+        }
+        
+        
 
         // find final vertex of the path
         int final_vertex_id = get_closest_border_vertex(g, starting_point_id);
         vector<Vertex> final_path = g.find_shortest_path_a_star(starting_point_id, final_vertex_id);
         path_vectors.push_back(final_path);
+        
+        return path_vectors;
+    
+}
 
 
 
+void TerrainCrossing::print_path(vector<Vertex> &path){
+	
+	for(int i = 0; i < path.size(); i++)
+		cerr << path[i] << endl;
+	cerr << endl;
+}
+
+
+
+
+void TerrainCrossing::print_final_path(Graph &g, vector< vector<Vertex> > &path_vectors){
+
+	for(int i = 0; i < path_vectors.size(); i++){
+		cerr << "Path number: " << i << endl;
+		cerr << "Cost: " << g.path_cost(path_vectors[i]) << endl;
+		print_path(path_vectors[i]);
+	}
+	
+}
+
+
+
+
+void TerrainCrossing::optimize_final_vertex_path(vector<Vertex> &path_vectors, int n_iterations){
+	
+	std::random_device rd;
+	std::mt19937 engine(rd());
+	std::uniform_real_distribution<> real_dist(-0.49, 0.49);
+	
+	for(int i = 1; i < path_vectors.size()-1; i++){
+		
+		int vertex_type = path_vectors[i].get_vertex_type();
+		if(vertex_type != 0)
+			continue;
+		
+		//Vertex v2 = path_vectors[i];
+		
+		
+		double initial_d = triple_path_distance(path_vectors[i-1], path_vectors[i], path_vectors[i+1]);
+		
+		double px = path_vectors[i].get_x();
+		double py = path_vectors[i].get_y();
+		
+		double optimal_shift_x = 0.0;
+		double optimal_shift_y = 0.0;
+		
+		for(int j = 0; j < n_iterations; j++){
+			double shift_x = real_dist(engine);
+			double shift_y = real_dist(engine);
+			
+			path_vectors[i].set_x(px + shift_x);
+			path_vectors[i].set_y(py + shift_y);
+			
+			double modified_d = triple_path_distance(path_vectors[i-1], path_vectors[i], path_vectors[i+1]);
+			
+			if(modified_d < initial_d){
+				optimal_shift_x = shift_x;
+				optimal_shift_y = shift_y;
+			}
+		}
+		
+		path_vectors[i].set_x(px + optimal_shift_x);
+		path_vectors[i].set_y(py + optimal_shift_y);
+	}
+	
+	
+	
+}
+
+
+
+vector<double> TerrainCrossing::convert_final_vertex_path_to_normal(vector<Vertex> &path_vectors){
+	
+	vector<double> ret(2*path_vectors.size());
+	
+	int index = 0;
+	for(int i = 0; i < path_vectors.size(); i++){
+		ret[index] = path_vectors[i].get_x();
+		index++;
+		ret[index] = path_vectors[i].get_y();
+		index++;
+	}
+	return ret;
+}
+
+
+
+
+vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double> locations, int capacity) {
+
+
+		//for(int i = 0; i < world_map.size(); i++){
+		//	cerr << world_map[i] << endl;
+		//}
+		//cerr << endl;
+		
+	
+        m_number_of_items = locations.size()/4;
+        
+        //cerr << "Number of items: " << m_number_of_items << endl;
+        
+        m_map_size = world_map.size();
+        int offset = 5;
+        
+        //vector< vector<int> >custom_world_map = generate_random_map_matrix(500);
+
+        initialize_map_matrix(world_map);
+
+        Graph g = Graph(m_map_matrix, locations);
+        //Graph g2 = Graph(custom_world_map, locations);
+        
+        //print_vector_2d(m_map_matrix, offset);
+        //cerr << endl;
+
+        //print_matrix_ij(m_map_size, offset);
+        //cerr << endl;
+
+        //g.print_graph();
+        //cerr << endl;
+
+        std::chrono::time_point<std::chrono::system_clock> start, end;
+        //start = std::chrono::system_clock::now();
+        //int source_id = 0;
+        //int target_id = m_map_size*m_map_size-1;
+        //vector<Vertex> shortest_path = g.find_shortest_path_dijkstra(source_id, target_id);
+        //vector<Vertex> shortest_path = g2.find_shortest_path_a_star(source_id, target_id);
+        //end = std::chrono::system_clock::now();
+        //std::chrono::duration<double> elapsed_seconds = end-start;
+        //cerr << "Dijkstra elapsed time: " << elapsed_seconds.count() << endl;
+
+
+        
+        initialize_item_and_target_vectors(locations);
+        initialize_border_vertexes(g);
+
+
+        start = std::chrono::system_clock::now();
+
+        int metric_type = 2;
+        
+        
+        vector<double> ret;
+        vector< vector<Vertex> > optimal_path_vectors;
+        double min_cost = std::numeric_limits<double>::max();
+        for(int i = 0; i < 100; i++){
+			
+        	vector< vector<Vertex> > path_vectors = search_for_path_the_random_greedy_way(g, capacity, metric_type);
+			double current_cost =  g.many_path_cost(path_vectors);
+			//cerr << current_cost << endl;
+			if(current_cost < min_cost){
+				min_cost = current_cost;
+				optimal_path_vectors = path_vectors;
+				
+			}
+			
+			//cerr << endl;
+			//print_final_path(g, path_vectors);
+			//cerr << endl;
+        }
+        
+        
+        vector<Vertex> final_path_vertex_vector = get_final_path_as_vertex_vector(optimal_path_vectors);
+        optimize_final_vertex_path(final_path_vertex_vector, 10000);
+        
+        ret = convert_final_vertex_path_to_normal(final_path_vertex_vector);
+        //ret = get_final_path(optimal_path_vectors);
+        
         end = std::chrono::system_clock::now();
         std::chrono::duration<double> elapsed_seconds_in_main;
         elapsed_seconds_in_main = end-start;
@@ -1125,10 +1461,7 @@ vector<double> TerrainCrossing::getPath(vector<string> world_map, vector<double>
 
 
         //cerr << "Number of paths: " << path_vectors.size() << endl;
-        vector<double> ret = get_final_path(path_vectors);
-
-
-
+        
         //for(int i = 0; i < ret.size()-2; i = i + 2){
         //	cerr << "i: " << i << " x: " << ret[i] << " y: " << ret[i+1] << endl;
         //}
